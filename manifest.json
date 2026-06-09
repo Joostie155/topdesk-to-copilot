@@ -1,0 +1,59 @@
+{
+  "manifest_version": 3,
+  "name": "TOPdesk → Copilot",
+  "version": "1.7",
+  "description": "Scrape TOPdesk tickets and send them to Microsoft Copilot for analysis, troubleshooting, and response drafting — with configurable prompts and optional ticket attachments.",
+  "author": "Joost",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "clipboardWrite",
+    "storage",
+    "tabGroups"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "TOPdesk → Copilot",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "scrape-ticket": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+X",
+        "mac": "MacCtrl+Shift+X"
+      },
+      "description": "Scrape TOPdesk ticket en open in Copilot"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://m365.cloud.microsoft/chat/*"
+      ],
+      "js": ["copilot-paste.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["copilot-main.js", "default-config.json"],
+      "matches": ["https://m365.cloud.microsoft/*"]
+    },
+    {
+      "resources": ["default-config.json"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

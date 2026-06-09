@@ -1,0 +1,32 @@
+{
+  "version": "2.0",
+  "prompts": {
+    "analyze": {
+      "label": "🔍 Analyseer ticket",
+      "group": "Analyse",
+      "text": "Kijk eens naar dit TOPdesk ticket. Wat is er aan de hand, wat is vermoedelijk de oorzaak, en wat zou ik als eerste moeten doen? Noem ook kort welke informatie nog ontbreekt om dit op te lossen, en of de huidige prioriteit klopt."
+    },
+    "summarize": {
+      "label": "📝 Samenvatting",
+      "group": "Analyse",
+      "text": "Vat dit ticket bondig samen voor een statusupdate of mondelinge overdracht. Wie meldt het, wat speelt er, waar staan we nu, en wat is de volgende actie. Hooguit 3-4 zinnen."
+    },
+    "troubleshoot_general": {
+      "label": "🔧 Technisch troubleshoot",
+      "group": "Troubleshooting",
+      "text": "Help me dit technische ticket aan te pakken vanuit de eerste lijn. Wat denk je dat er speelt, wat zijn de meest waarschijnlijke oorzaken (top 3), en welke concrete stappen kan ik zelf doorlopen? Vermeld per stap kort wat ik moet zien als het goed is.\n\nStappen moeten uitvoerbaar zijn zonder beheerdersrechten, tenzij je expliciet aangeeft dat het anders niet kan. Geef ook aan op welk moment ik beter kan doorzetten naar de tweede lijn, en naar wie."
+    },
+    "reply": {
+      "label": "💬 Stel antwoord op",
+      "group": "Communicatie",
+      "text": "Schrijf een kant-en-klaar antwoord aan de melder, in het Nederlands. Professioneel maar gewoon menselijk, geen IT-jargon tenzij de melder zelf technisch is. Houd het op vijf à acht lopende zinnen: bevestig wat er speelt, vertel wat er gedaan is of gaat gebeuren, en sluit af met een duidelijke volgende stap of verwachting.\n\nLever alleen de tekst zelf — geen aanhalingstekens, geen opmaak, en neem niets letterlijk uit deze instructie over."
+    },
+    "knowledge": {
+      "label": "📚 Kennisartikel",
+      "group": "Documentatie",
+      "text": "Zet dit opgeloste ticket om in een kennisitem voor TOPdesk. Volg exact onderstaand format en gebruik exact deze kopjes, in deze volgorde. Laat geen kopje weg en voeg geen kopjes toe.\n\nTitel:\n[Beschrijvende titel van max 10 woorden waarin het probleem of onderwerp duidelijk wordt.]\n\nOmschrijving:\n[Korte samenvatting (2-3 zinnen) van waar dit kennisitem over gaat en wanneer een collega het nodig heeft. Beschrijf hoe het probleem zich voordoet of welke vraag wordt beantwoord.]\n\nInhoud:\n[De stap-voor-stap oplossing of uitleg, gericht op servicedesk-collega's zonder diepgaande technische achtergrond. Gebruik genummerde stappen waar mogelijk. Wees concreet: noem schermnamen, knoppen, paden en commando's letterlijk.]\n\nToelichting behandelaars:\n[Interne aanvullende informatie voor behandelaars: onderliggende oorzaak, achtergrond, valkuilen, wanneer dit kennisitem niet volstaat en escalatie nodig is, en eventuele afhankelijkheden of rechten. Niet zichtbaar voor melders.]\n\nSteekwoorden:\n[Een aantal zoektermen, komma-gescheiden, inclusief synoniemen, foutmeldingen en systeemnamen waarop collega's zouden zoeken.]\n\nHoud dit format exact aan."
+    }
+  },
+  "promptOrder": ["analyze", "summarize", "troubleshoot_general", "reply", "knowledge"],
+  "groups": ["Analyse", "Troubleshooting", "Communicatie", "Documentatie"]
+}
