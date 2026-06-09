@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "TOPdesk → Copilot",
   "version": "1.7",
-  "description": "Stuur TOPdesk-tickets naar Microsoft 365 Copilot voor analyse, troubleshooting en het opstellen van reacties — met configureerbare prompts en optionele bijlagen.",
+  "description": "Stuur TOPdesk-tickets met bijlagen naar Microsoft 365 Copilot voor analyse, troubleshooting en reacties.",
   "author": "Joost",
   "permissions": [
     "activeTab",
