@@ -2,6 +2,10 @@
 
 Browserextensie (Manifest V3) die TOPdesk-tickets en bijlagen scrapet en doorstuurt naar [Microsoft 365 Copilot](https://m365.cloud.microsoft/chat/) voor analyse, troubleshooting en het opstellen van reacties. De UI en promptsjablonen zijn in het Nederlands. Werkt op Chromium-browsers (Chrome, Edge).
 
+| Hoofdmenu | Promptbibliotheek |
+|:---:|:---:|
+| ![Hoofdmenu van de extensie op een TOPdesk-tab](screenshots/popup-main.png) | ![Instellingenpagina met de prompt-tab](screenshots/settings-prompts.png) |
+
 ---
 
 ## Voor de gebruiker
