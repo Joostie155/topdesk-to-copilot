@@ -1,5 +1,7 @@
 # TOPdesk → Copilot
 
+[![Beschikbaar in de Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-beschikbaar-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/topdesk-%E2%86%92-copilot/cljidjidcpgndmkpfcoogljhniicmekb)
+
 Browserextensie (Manifest V3) die TOPdesk-tickets en bijlagen scrapet en doorstuurt naar [Microsoft 365 Copilot](https://m365.cloud.microsoft/chat/) voor analyse, troubleshooting en het opstellen van reacties. De UI en promptsjablonen zijn in het Nederlands. Werkt op Chromium-browsers (Chrome, Edge).
 
 | Hoofdmenu | Promptbibliotheek |
@@ -21,6 +23,14 @@ Servicedeskmedewerkers verliezen veel tijd met het overtypen of kopiëren van ti
 5. De prompt wordt automatisch verstuurd — je hoeft niet zelf op Enter te drukken. (Uit te schakelen via ⚙ → **Algemeen**.)
 
 ### Installeren
+
+**Via de Chrome Web Store (aanbevolen):**
+
+1. Open de [extensiepagina in de Chrome Web Store](https://chromewebstore.google.com/detail/topdesk-%E2%86%92-copilot/cljidjidcpgndmkpfcoogljhniicmekb).
+2. Klik **Toevoegen aan Chrome** en bevestig.
+3. Pin het extensie-icoon aan de toolbar.
+
+**Handmatig (developer mode):**
 
 1. Download of clone deze repository.
 2. Open `chrome://extensions/` (of `edge://extensions/`) en zet **Developer mode** aan.
