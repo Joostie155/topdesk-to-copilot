@@ -21,6 +21,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const ATTACH_SIZE_WARN  = 10 * 1024 * 1024;
   const ATTACH_SIZE_BLOCK = 30 * 1024 * 1024;
+  // chrome.storage.local heeft een quotum van ~10 MB voor de hele extensie.
+  // Bijlagen worden als base64 data-URL opgeslagen (~1.37× de bytegrootte),
+  // dus we rekenen de geschatte opslag uit en houden marge voor config/tekst.
+  const BASE64_OVERHEAD     = 1.37;
+  const STORAGE_QUOTA_SAFE  = 9 * 1024 * 1024;
   const NO_ATTACH_DEFAULT_KEYS = new Set([
     "reply", "close_reply", "close_no_response", "reminder_no_response", "request_info",
   ]);
@@ -91,6 +96,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const resetAllBtn     = document.getElementById("resetAllBtn");
   const savedIndicator  = document.getElementById("savedIndicator");
   const autoSubmitToggle = document.getElementById("autoSubmitToggle");
+
+  // Versie uit het manifest (één bron van waarheid) tonen in footer + settings.
+  const extVersion = chrome.runtime.getManifest().version;
+  const versionLabel = document.getElementById("versionLabel");
+  if (versionLabel) versionLabel.textContent = `v${extVersion}`;
+  const aboutVersion = document.getElementById("aboutVersion");
+  if (aboutVersion) aboutVersion.textContent = `TOPdesk → Copilot · v${extVersion}`;
 
   const COPILOT_URL = "https://m365.cloud.microsoft/chat/";
 
@@ -1010,6 +1022,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         const att = currentAttachments.find((a) => a.id === id);
         return att && att.size <= ATTACH_SIZE_BLOCK;
       });
+
+      // Cumulatieve opslagcheck: voorkom de stille quota-fout (popup sluit zodra
+      // de Copilot-tab opent, dus een melding achteraf zie je niet meer).
+      const selectedAtts = currentAttachments.filter((a) => selectedIds.includes(a.id));
+      const estBytes = selectedAtts.reduce((s, a) => s + (a.size || 0) * BASE64_OVERHEAD, 0) + fullText.length;
+      if (selectedIds.length && estBytes > STORAGE_QUOTA_SAFE) {
+        const totalMb = (selectedAtts.reduce((s, a) => s + (a.size || 0), 0) / 1024 / 1024).toFixed(1);
+        updateStatus(
+          `De geselecteerde bijlage${selectedIds.length === 1 ? "" : "n"} (${totalMb} MB) ${selectedIds.length === 1 ? "past" : "passen samen"} niet in de opslag van de extensie (max ~10 MB). Vink minder of kleinere bijlagen aan, of klik "Geen" om alleen de tekst te versturen.`,
+          "error"
+        );
+        resetScrapeBtn();
+        return;
+      }
+
       if (selectedIds.length) {
         updateStatus(`Ticket gelezen. ${selectedIds.length} bijlage${selectedIds.length === 1 ? "" : "n"} ophalen...`, "info");
         const meta = currentAttachments
@@ -1027,14 +1054,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       }
 
-      await chrome.storage.local.set({
-        copilot_pendingTicket: {
-          text: fullText,
-          ticketId,
-          timestamp: Date.now(),
-          attachments,
-        },
-      });
+      let attachmentsDropped = false;
+      try {
+        await storePendingTicket(fullText, ticketId, attachments);
+      } catch (storeErr) {
+        if (attachments.length && isQuotaError(storeErr)) {
+          // Bijlagen passen niet in chrome.storage.local (~10 MB). De tickettekst
+          // past altijd wel: sla die zonder bijlagen op zodat de flow doorgaat.
+          await storePendingTicket(fullText, ticketId, []);
+          attachmentsDropped = true;
+        } else {
+          throw storeErr;
+        }
+      }
 
       await fallbackToClipboard(fullText, true);
       const newTab = await chrome.tabs.create({ url: COPILOT_URL, active: false });
@@ -1043,14 +1075,44 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       await chrome.tabs.update(newTab.id, { active: true });
 
-      updateStatus("✅ Copilot geopend! Tekst wordt automatisch geplakt.", "success");
+      if (attachmentsDropped) {
+        updateStatus(
+          "⚠️ Bijlage(n) te groot voor opslag (max ~10 MB). De tickettekst is wél verstuurd — voeg de bijlage handmatig toe in Copilot.",
+          "info"
+        );
+      } else {
+        updateStatus("✅ Copilot geopend! Tekst wordt automatisch geplakt.", "success");
+      }
       resetScrapeBtn();
     } catch (err) {
       console.error("Scrape error:", err);
-      updateStatus(`Fout: ${err.message}`, "error");
+      updateStatus(`Fout: ${friendlyError(err)}`, "error");
       resetScrapeBtn();
     }
   });
+
+  function storePendingTicket(fullText, ticketId, attachments) {
+    return chrome.storage.local.set({
+      copilot_pendingTicket: {
+        text: fullText,
+        ticketId,
+        timestamp: Date.now(),
+        attachments,
+      },
+    });
+  }
+
+  function isQuotaError(err) {
+    const msg = (err && (err.message || err)) + "";
+    return /quota/i.test(msg);
+  }
+
+  function friendlyError(err) {
+    if (isQuotaError(err)) {
+      return "De bijlage is te groot voor de opslag van de extensie (max ~10 MB). Kies een kleinere bijlage of voeg deze handmatig toe in Copilot.";
+    }
+    return err && err.message ? err.message : String(err);
+  }
 
   async function fallbackToClipboard(text, silent = false) {
     try {
