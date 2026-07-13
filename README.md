@@ -1,8 +1,9 @@
 # TOPdesk → Copilot
 
 [![Beschikbaar in de Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-beschikbaar-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/topdesk-%E2%86%92-copilot/cljidjidcpgndmkpfcoogljhniicmekb)
+[![Beschikbaar in Microsoft Edge Add-ons](https://img.shields.io/badge/Edge%20Add--ons-beschikbaar-0078D7?logo=microsoftedge&logoColor=white)](https://microsoftedge.microsoft.com/addons/detail/topdesk-%E2%86%92-copilot/cdhanfdjoiclcnafafdbgdihlppndlfi)
 
-Browserextensie (Manifest V3) die TOPdesk-tickets en bijlagen scrapet en doorstuurt naar [Microsoft 365 Copilot](https://m365.cloud.microsoft/chat/) voor analyse, troubleshooting en het opstellen van reacties. De UI en promptsjablonen zijn in het Nederlands. Werkt op Chromium-browsers (Chrome, Edge).
+Browserextensie (Manifest V3) die TOPdesk-tickets en bijlagen scrapet en doorstuurt naar [Microsoft 365 Copilot](https://m365.cloud.microsoft/chat/) voor analyse, troubleshooting en het opstellen van reacties. De UI en promptsjablonen zijn in het Nederlands. Werkt op Chromium-browsers en is beschikbaar in de Chrome Web Store én Microsoft Edge Add-ons.
 
 | Hoofdmenu | Promptbibliotheek |
 |:---:|:---:|
@@ -24,10 +25,16 @@ Servicedeskmedewerkers verliezen veel tijd met het overtypen of kopiëren van ti
 
 ### Installeren
 
-**Via de Chrome Web Store (aanbevolen):**
+**Via de Chrome Web Store (aanbevolen voor Chrome):**
 
 1. Open de [extensiepagina in de Chrome Web Store](https://chromewebstore.google.com/detail/topdesk-%E2%86%92-copilot/cljidjidcpgndmkpfcoogljhniicmekb).
 2. Klik **Toevoegen aan Chrome** en bevestig.
+3. Pin het extensie-icoon aan de toolbar.
+
+**Via Microsoft Edge Add-ons (aanbevolen voor Edge):**
+
+1. Open de [extensiepagina in Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/topdesk-%E2%86%92-copilot/cdhanfdjoiclcnafafdbgdihlppndlfi).
+2. Klik **Get** / **Downloaden** en bevestig.
 3. Pin het extensie-icoon aan de toolbar.
 
 **Handmatig (developer mode):**
