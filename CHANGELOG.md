@@ -4,6 +4,22 @@ Alle noemenswaardige wijzigingen aan deze extensie staan in dit
 bestand. Het format volgt [Keep a Changelog](https://keepachangelog.com/nl/1.1.0/)
 en deze extensie volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
+## [1.8] — 2026-09-02
+
+### Toegevoegd
+- **Meerdere tickets tegelijk versturen.** Staan er twee of meer tickets
+  open in de TOPdesk-tabbalk, dan toont de popup een lijst **Open tickets**
+  met een vinkje per ticket. Selecteer je precies het actieve ticket, dan
+  werkt alles zoals voorheen (inclusief bijlagen). Elke andere selectie
+  haalt de tickets op via de TOPdesk REST API (`/tas/api/incidents/...`)
+  en stuurt ze als tekst naar Copilot, met een `=== TICKET n/m ===`-kop
+  per ticket. Werkt ook vanaf een overzichtstab zonder actief ticket.
+- Nieuw content script `topdesk-tickets.js` (tabbalk uitlezen + API-fetch).
+
+### Gewijzigd
+- Anonimiseren dekt nu ook de `Naam:`-regels uit het API-formaat en
+  maskeert bij "Achternaam, Voornaam" ook de losse helften.
+
 ## [1.7.1] — 2026-06-30
 
 ### Toegevoegd
