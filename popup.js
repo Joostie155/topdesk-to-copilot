@@ -35,18 +35,32 @@ document.addEventListener("DOMContentLoaded", async () => {
   let lastLoadedUuid = null;
   let attachmentsLoading = false;
 
+  // Multi-ticket state: all tickets open in the Mango tab strip.
+  let openTickets = [];                    // [{number, title, active}]
+  let selectedTicketNumbers = new Set();
+  let lastTicketsKey = null;
+  let ticketsLoading = false;
+
   // ─── Anonymization ────────────────────────────────────────────────────────────
 
   function anonimiseer(text) {
     const melderNames = [];
-    const melderMatch = text.match(/^Melder:\s*(.+)$/m);
-    if (melderMatch) {
-      const fullName = melderMatch[1].trim();
+    // "Melder:" comes from the DOM scraper, "Naam:" from the REST-API route;
+    // with multiple tickets there can be several of these lines.
+    for (const m of text.matchAll(/^(?:Melder|Naam):\s*(.+)$/gm)) {
+      const fullName = m[1].trim();
       melderNames.push(fullName);
       const parts = fullName.split(/\s+/);
       if (parts.length >= 2) {
         melderNames.push(parts[0]);
         melderNames.push(parts.slice(1).join(" "));
+      }
+      // "Achternaam, Voornaam" — also mask the comma-free halves
+      if (fullName.includes(",")) {
+        for (const half of fullName.split(",")) {
+          const h = half.trim();
+          if (h) melderNames.push(h);
+        }
       }
     }
 
@@ -160,6 +174,25 @@ document.addEventListener("DOMContentLoaded", async () => {
       return out?.result || null;
     } catch (err) {
       console.warn("[TOPdesk→Copilot] callAttachmentsScript error:", err);
+      return null;
+    }
+  }
+
+  /** Same two-step pattern as callAttachmentsScript, for topdesk-tickets.js. */
+  async function callTicketsScript(tabId, request) {
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        func: (r) => { window.__topdeskTicketsRequest = r; },
+        args: [request],
+      });
+      const [out] = await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ["topdesk-tickets.js"],
+      });
+      return out?.result || null;
+    } catch (err) {
+      console.warn("[TOPdesk→Copilot] callTicketsScript error:", err);
       return null;
     }
   }
@@ -805,6 +838,113 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  // ─── Open tickets (multi-select) ─────────────────────────────────────────────
+
+  const ticketsGroup = document.getElementById("ticketsGroup");
+  const ticketsList  = document.getElementById("ticketsList");
+  const ticketsCount = document.getElementById("ticketsCount");
+  const ticketsHint  = document.getElementById("ticketsHint");
+
+  function activeTicketNumber() {
+    return openTickets.find((t) => t.active)?.number || null;
+  }
+
+  /** True when the current selection requires the REST-API route instead of the DOM scraper. */
+  function useApiRoute() {
+    if (!ticketsGroup || ticketsGroup.style.display === "none") return false;
+    if (!selectedTicketNumbers.size) return false;
+    return !(selectedTicketNumbers.size === 1 && selectedTicketNumbers.has(activeTicketNumber()));
+  }
+
+  function scrapeBtnLabel() {
+    const n = selectedTicketNumbers.size;
+    if (ticketsGroup && ticketsGroup.style.display !== "none" && n > 1) {
+      return `📋 ${n} tickets scrapen & naar Copilot`;
+    }
+    return "📋 Ticket scrapen & naar Copilot";
+  }
+
+  function applyTicketDefaults() {
+    selectedTicketNumbers.clear();
+    const active = activeTicketNumber();
+    if (active) {
+      selectedTicketNumbers.add(active);
+    } else if (openTickets.length === 1) {
+      selectedTicketNumbers.add(openTickets[0].number);
+    }
+  }
+
+  function renderTickets() {
+    if (!ticketsGroup) return;
+    // Only worth showing when there is something the current flow can't do:
+    // multiple open tickets, or an open ticket that isn't the active view.
+    const show = openTickets.length >= 2 || (openTickets.length >= 1 && !activeTicketNumber());
+    ticketsGroup.style.display = show ? "block" : "none";
+    if (!show) {
+      if (!scrapeBtn.disabled) scrapeBtn.textContent = scrapeBtnLabel();
+      return;
+    }
+
+    ticketsCount.textContent = `(${selectedTicketNumbers.size}/${openTickets.length} geselecteerd)`;
+    ticketsList.innerHTML = "";
+    for (const t of openTickets) {
+      const row = document.createElement("label");
+      row.className = "attach-item" + (selectedTicketNumbers.has(t.number) ? " selected" : "");
+      row.innerHTML = `
+        <input type="checkbox" ${selectedTicketNumbers.has(t.number) ? "checked" : ""}>
+        <div class="attach-info">
+          <div class="attach-name">${escapeHtml(t.number)} — ${escapeHtml(t.title || "(geen omschrijving)")}</div>
+        </div>
+        ${t.active ? '<span class="attach-badge">Actief</span>' : ""}`;
+      row.querySelector("input").addEventListener("change", (e) => {
+        if (e.target.checked) selectedTicketNumbers.add(t.number);
+        else selectedTicketNumbers.delete(t.number);
+        renderTickets();
+      });
+      ticketsList.appendChild(row);
+    }
+
+    if (selectedTicketNumbers.size > 1) {
+      ticketsHint.textContent = "Bij meerdere tickets wordt alleen de tekst verstuurd (geen bijlagen).";
+      ticketsHint.style.display = "block";
+    } else {
+      ticketsHint.style.display = "none";
+    }
+    if (!scrapeBtn.disabled) scrapeBtn.textContent = scrapeBtnLabel();
+  }
+
+  async function loadOpenTicketsForActiveTab() {
+    if (ticketsLoading) return;
+    ticketsLoading = true;
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab) return;
+      const url = tab.url || "";
+      if (!url.includes("topdesk") && !url.includes("tod.") && !url.includes("localhost")) return;
+
+      const res = await callTicketsScript(tab.id, { action: "list" });
+      if (!res || !res.ok) {
+        console.debug("[TOPdesk→Copilot] tickets list faalde:", res);
+        return;
+      }
+      if (res.key === lastTicketsKey) return;
+      lastTicketsKey = res.key;
+      openTickets = Array.isArray(res.tickets) ? res.tickets : [];
+      applyTicketDefaults();
+      renderTickets();
+    } finally {
+      ticketsLoading = false;
+    }
+  }
+
+  function clearOpenTickets() {
+    if (lastTicketsKey === null && !openTickets.length) return;
+    openTickets = [];
+    selectedTicketNumbers.clear();
+    lastTicketsKey = null;
+    renderTickets();
+  }
+
   // ─── Ticket indicator ────────────────────────────────────────────────────────
 
   const ticketStatusEl   = document.getElementById("ticketStatus");
@@ -923,9 +1063,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       setTicketIndicator("green", "Ticket klaar om te scrapen");
       setTicketInfo(ticketNumber, title, caller);
       loadAttachmentsForActiveTab();
+      loadOpenTicketsForActiveTab();
     } else if (state === "empty") {
       setTicketIndicator("yellow", "Geen ticket geopend");
       setTicketInfo(null);
+      // Still scan the tab strip: background tickets can be sent via the API
+      // route even when no ticket view is active (e.g. overview tab).
+      loadOpenTicketsForActiveTab();
       if (lastLoadedUuid !== null) {
         currentAttachments = [];
         selectedAttachmentIds.clear();
@@ -935,6 +1079,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       setTicketIndicator("red", "Geen TOPdesk-tab");
       setTicketInfo(null);
+      clearOpenTickets();
       if (lastLoadedUuid !== null) {
         currentAttachments = [];
         selectedAttachmentIds.clear();
@@ -958,7 +1103,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function resetScrapeBtn() {
     scrapeBtn.disabled = false;
-    scrapeBtn.textContent = "📋 Ticket scrapen & naar Copilot";
+    scrapeBtn.textContent = scrapeBtnLabel();
   }
 
   scrapeBtn.addEventListener("click", async () => {
@@ -976,18 +1121,44 @@ document.addEventListener("DOMContentLoaded", async () => {
         resetScrapeBtn(); return;
       }
 
-      const [scrapeResult] = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: ["topdesk-scraper.js"],
-      });
-
-      let ticketText = scrapeResult?.result;
-      if (!ticketText || ticketText.startsWith("FOUT:") || ticketText.length < 20) {
-        updateStatus(
-          ticketText?.startsWith("FOUT:") ? ticketText : "Geen ticket-data gevonden. Zorg dat je op een ticket-detailpagina zit.",
-          "error"
+      let ticketText;
+      let apiNumbers = null; // set when tickets were fetched via the REST API
+      if (useApiRoute()) {
+        const nums = [...selectedTicketNumbers];
+        updateStatus(`${nums.length} ticket${nums.length === 1 ? "" : "s"} ophalen via TOPdesk API...`, "info");
+        const res = await callTicketsScript(tab.id, { action: "fetch", numbers: nums });
+        if (!res || !res.ok || !res.tickets?.length) {
+          const detail = res?.errors?.join("; ") || res?.error || "onbekende fout";
+          updateStatus(`Tickets ophalen via de API mislukt: ${detail}`, "error");
+          resetScrapeBtn(); return;
+        }
+        const parts = res.tickets.map((t, i) =>
+          res.tickets.length > 1
+            ? `=== TICKET ${i + 1}/${res.tickets.length}: ${t.number} ===\n\n${t.text}`
+            : `=== TOPDESK TICKET ===\n\n${t.text}`
         );
-        resetScrapeBtn(); return;
+        ticketText = parts.join("\n\n");
+        if (ticketText.length > 50000) {
+          ticketText = ticketText.substring(0, 50000) + "\n\n[... afgekapt op 50.000 tekens]";
+        }
+        if (res.errors?.length) {
+          updateStatus(`Let op: ${res.errors.join("; ")} — ga door met de rest.`, "info");
+        }
+        apiNumbers = res.tickets.map((t) => t.number.replace(/\s+/g, ""));
+      } else {
+        const [scrapeResult] = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ["topdesk-scraper.js"],
+        });
+
+        ticketText = scrapeResult?.result;
+        if (!ticketText || ticketText.startsWith("FOUT:") || ticketText.length < 20) {
+          updateStatus(
+            ticketText?.startsWith("FOUT:") ? ticketText : "Geen ticket-data gevonden. Zorg dat je op een ticket-detailpagina zit.",
+            "error"
+          );
+          resetScrapeBtn(); return;
+        }
       }
 
       if (anonToggle.checked) ticketText = anonimiseer(ticketText);
@@ -1011,14 +1182,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const ticketIdMatch   = ticketText.match(/Ticketnummer:\s*([A-Z]\d{4}\s*\d{4})/);
       const ticketDescMatch = ticketText.match(/Omschrijving:\s*(.+)/);
-      const ticketId = ticketIdMatch
+      let ticketId = ticketIdMatch
         ? `${ticketIdMatch[1]}${ticketDescMatch ? "_" + ticketDescMatch[1].trim() : ""}`
         : "TOPdesk_ticket";
+      if (apiNumbers && apiNumbers.length > 1) ticketId = apiNumbers.join("_");
 
       const fullText = promptText ? `${promptText}\n\n${ticketText}` : ticketText;
 
       let attachments = [];
-      const selectedIds = [...selectedAttachmentIds].filter((id) => {
+      // Attachments only travel with the regular single-active-ticket flow;
+      // the API route (background or multiple tickets) is text-only.
+      const selectedIds = apiNumbers ? [] : [...selectedAttachmentIds].filter((id) => {
         const att = currentAttachments.find((a) => a.id === id);
         return att && att.size <= ATTACH_SIZE_BLOCK;
       });

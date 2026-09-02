@@ -73,6 +73,15 @@ Copilot accepteert een breed scala aan bestandstypen native, waaronder `.png`, `
 
 **Let op**: de anonimisatie-toggle werkt alleen op tekst, niet op afbeeldingen. Een waarschuwing verschijnt automatisch als je een afbeelding aanvinkt.
 
+### Meerdere tickets tegelijk
+
+Heb je in TOPdesk meerdere tickets open in de tabbalk, dan verschijnt in de popup een lijst **Open tickets**. Vink aan welke tickets mee moeten:
+
+- **Alleen het actieve ticket** → de gewone flow, inclusief bijlagen.
+- **Meerdere tickets of een ticket op de achtergrond** → de extensie haalt de tickets op via de TOPdesk REST API en stuurt ze als tekst naar Copilot, elk onder een eigen `=== TICKET n/m ===`-kop. Bijlagen gaan in deze route niet mee.
+
+Handig voor "zie jij een patroon in deze drie meldingen?" of om een reactie te schrijven die naar meerdere melders moet.
+
 ### Promptsjablonen
 
 De extensie komt met een set kant-en-klare prompts, verdeeld over de categorieën **Analyse**, **Troubleshooting**, **Communicatie** en **Documentatie**. Via het tandwiel-icoon open je de instellingenpagina waar je:
@@ -101,6 +110,7 @@ popup.js                      Popup-logica: prompts, bijlagen-selectie, scrape-f
 background.js                 Service worker voor de sneltoets-flow
 topdesk-scraper.js            Content script dat TOPdesks Mango-UI iframes uitleest
 topdesk-attachments.js        On-demand content script voor bijlagen (REST API + DOM)
+topdesk-tickets.js            On-demand content script voor multi-select (tabbalk + REST API)
 copilot-paste.js              Content script (isolated world) dat files uploadt
 copilot-main.js               Page-script (main world) voor Lexical-editor API
 default-config.json           Bundled promptsjablonen (eerste start)
